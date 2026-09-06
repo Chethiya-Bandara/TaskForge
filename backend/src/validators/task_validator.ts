@@ -19,5 +19,5 @@ export const updateTaskSchema = z.object({
     "medium",
     "high",
   ]).optional(),
-  assignedToId: z.string().uuid().optional(),
+  assignedToId: z.string().uuid().nullable().optional()
 });

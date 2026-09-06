@@ -11,6 +11,30 @@ export const addMember = async(
 ) => {
     try{
         const projectId = req.params.id as string;
+
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+        });
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+            });
+        }
+
+        const isOwner = await prisma.projectMember.findFirst({
+            where: {
+                projectId,
+                userId: req.user!.userId,
+                role: "owner",
+            },
+        });
+
+        if (!isOwner) {
+            return res.status(403).json({
+                message: "Only the project owner can manage members",
+            });
+        }
         const data = addProjectMemberSchema.parse(req.body);
         const { email, role } = data;
 
@@ -74,6 +98,19 @@ export const getMembers = async(
     try{
         const projectId = req.params.id as string;
 
+        const membership = await prisma.projectMember.findFirst({
+        where: {
+            projectId,
+            userId: req.user!.userId,
+        },
+        });
+
+        if (!membership) {
+        return res.status(403).json({
+            message: "Forbidden",
+        });
+        }
+
         const members = await prisma.projectMember.findMany({
             where: { projectId },
             include: {
@@ -95,6 +132,19 @@ export const deleteMember = async (
 ) => {
     try {
         const projectId = req.params.id as string;
+        const isOwner = await prisma.projectMember.findFirst({
+        where: {
+            projectId,
+            userId: req.user!.userId,
+            role: "owner",
+        },
+        });
+
+        if (!isOwner) {
+        return res.status(403).json({
+            message: "Only the project owner can manage members",
+        });
+        }
         const userId = req.params.userId as string;
 
         const projectExists = await prisma.project.findUnique({

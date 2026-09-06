@@ -9,6 +9,20 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
   try {
     const projectId = req.params.id as string;
 
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId,
+        userId: req.user!.userId,
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
+
+
     const tasks = await prisma.task.findMany({
       where: { projectId },
       include: {
@@ -30,6 +44,20 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
 export const createTask = async (req: AuthRequest, res: Response) => {
   try {
     const projectId = req.params.id as string;
+    
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId,
+        userId: req.user!.userId,
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
+
     const data = createTaskSchema.parse(req.body);
 
     const project = await prisma.project.findUnique({
@@ -111,20 +139,24 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
     // assignedToId validation
     if (data.assignedToId !== undefined) {
-      const assignee = await prisma.projectMember.findFirst({
-        where: {
-          projectId: task.projectId,
-          userId: data.assignedToId,
-        },
-      });
-
-      if (!assignee) {
-        return res.status(400).json({
-          message: "User is not a member of this project",
+      if (data.assignedToId === null) {
+        updateData.assignedToId = null;
+      } else {
+        const assignee = await prisma.projectMember.findFirst({
+          where: {
+            projectId: task.projectId,
+            userId: data.assignedToId,
+          },
         });
-      }
 
-      updateData.assignedToId = data.assignedToId;
+        if (!assignee) {
+          return res.status(400).json({
+            message: "User is not a member of this project",
+          });
+        }
+
+        updateData.assignedToId = data.assignedToId;
+      }
     }
 
     const updatedTask = await prisma.task.update({
