@@ -1,11 +1,60 @@
+import { useRef } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
 import StatCard from "../components/StatCard";
 import TaskCard from "../components/TaskCard";
 
 function Dashboard() {
+  const container = useRef();
+
+  useGSAP(
+    () => {
+      // Welcome animation
+      gsap.from(".welcome-section", {
+        opacity: 0,
+        y: -20,
+        duration: 0.7,
+        ease: "power2.out",
+      });
+
+      // Statistics cards
+      gsap.from(".stat-card", {
+        opacity: 0,
+        y: 25,
+        duration: 0.6,
+        stagger: 0.12,
+        delay: 0.2,
+        ease: "power2.out",
+      });
+
+      // Recent tasks section
+      gsap.from(".recent-tasks", {
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        delay: 0.5,
+        ease: "power2.out",
+      });
+
+      // Individual task cards
+      gsap.from(".task-card", {
+        opacity: 0,
+        x: -20,
+        duration: 0.5,
+        stagger: 0.1,
+        delay: 0.7,
+        ease: "power2.out",
+      });
+    },
+    { scope: container }
+  );
+
   return (
-    <div>
+    <div ref={container}>
       {/* Welcome */}
       <section
+        className="welcome-section"
         style={{
           padding: "24px 28px",
           marginBottom: "24px",
@@ -39,27 +88,34 @@ function Dashboard() {
           marginBottom: "30px",
         }}
       >
-        <StatCard
-          icon="📋"
-          value="12"
-          label="Total Tasks"
-        />
+        <div className="stat-card">
+          <StatCard
+            icon="📋"
+            value="12"
+            label="Total Tasks"
+          />
+        </div>
 
-        <StatCard
-          icon="⏳"
-          value="5"
-          label="In Progress"
-        />
+        <div className="stat-card">
+          <StatCard
+            icon="⏳"
+            value="5"
+            label="In Progress"
+          />
+        </div>
 
-        <StatCard
-          icon="✅"
-          value="7"
-          label="Completed"
-        />
+        <div className="stat-card">
+          <StatCard
+            icon="✅"
+            value="7"
+            label="Completed"
+          />
+        </div>
       </section>
 
       {/* Recent Tasks */}
       <section
+        className="recent-tasks"
         style={{
           padding: "24px",
           background: "#181b23",
@@ -99,23 +155,29 @@ function Dashboard() {
         </div>
 
         <div>
-          <TaskCard
-            title="Design dashboard UI"
-            project="TaskForge Project"
-            status="In Progress"
-          />
+          <div className="task-card">
+            <TaskCard
+              title="Design dashboard UI"
+              project="TaskForge Project"
+              status="In Progress"
+            />
+          </div>
 
-          <TaskCard
-            title="Set up database"
-            project="Backend Development"
-            status="Completed"
-          />
+          <div className="task-card">
+            <TaskCard
+              title="Set up database"
+              project="Backend Development"
+              status="Completed"
+            />
+          </div>
 
-          <TaskCard
-            title="Implement authentication"
-            project="Backend Development"
-            status="Pending"
-          />
+          <div className="task-card">
+            <TaskCard
+              title="Implement authentication"
+              project="Backend Development"
+              status="Pending"
+            />
+          </div>
         </div>
       </section>
     </div>
