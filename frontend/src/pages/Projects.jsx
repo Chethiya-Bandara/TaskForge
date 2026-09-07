@@ -1,9 +1,19 @@
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import gsap from "gsap";
+
 import ProjectCard from "../components/ProjectCard";
 
 function Projects() {
+  const pageRef = useRef(null);
+  const headerRef = useRef(null);
+  const cardsRef = useRef(null);
+  
   return (
-    <div>
+    <div ref={pageRef}>
+      {/* Page Header */}
       <div
+        ref={headerRef}
         style={{
           marginBottom: "24px",
         }}
@@ -28,7 +38,9 @@ function Projects() {
         </p>
       </div>
 
+      {/* Project Cards */}
       <section
+        ref={cardsRef}
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",

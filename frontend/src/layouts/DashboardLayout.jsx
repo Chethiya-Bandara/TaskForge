@@ -1,7 +1,30 @@
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import gsap from "gsap";
+
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 
 function DashboardLayout({ children }) {
+  const pageRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    gsap.fromTo(
+      pageRef.current,
+      {
+        opacity: 0,
+        y: 12,
+      },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.4,
+        ease: "power2.out",
+      }
+    );
+  }, [location.pathname]);
+
   return (
     <div
       className="app"
@@ -26,7 +49,10 @@ function DashboardLayout({ children }) {
       >
         <Header />
 
-        {children}
+        {/* Page transition */}
+        <div ref={pageRef}>
+          {children}
+        </div>
       </main>
     </div>
   );
