@@ -1,451 +1,65 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api, API_URL } from "./api";
 
-const INITIAL_BOARD = {
-  Backlog: [
-    { id: "t1", title: "Migrate auth to Clerk", priority: "P1", assignee: "KL", tag: "Infra", dueDate: "Oct 18", subtasks: 4, comments: 2 },
-    { id: "t2", title: "Draft Q4 OKRs doc", priority: "P2", assignee: "PR", tag: "Strategy", dueDate: "Oct 22", comments: 5 },
-    { id: "t3", title: "Add CSV export to reports", priority: "P3", assignee: "MR", tag: "Feature", dueDate: "Nov 1", subtasks: 2 },
-    { id: "t4", title: "Update privacy policy for EU", priority: "P2", assignee: "SO", tag: "Legal", dueDate: "Oct 28" },
-  ],
-  "In Progress": [
-    { id: "t5", title: "Redesign onboarding flow step 2", priority: "P1", assignee: "MR", tag: "Design", dueDate: "Oct 16", subtasks: 6, comments: 11 },
-    { id: "t6", title: "Write migration script for v2 schema", priority: "P1", assignee: "SO", tag: "Infra", dueDate: "Oct 14", subtasks: 3, comments: 4 },
-    { id: "t7", title: "Implement webhook retry logic", priority: "P0", assignee: "KL", tag: "Bug", dueDate: "Oct 13", comments: 7 },
-  ],
-  Review: [
-    { id: "t8", title: "Add audit log export endpoint", priority: "P2", assignee: "TN", tag: "Feature", dueDate: "Oct 15", subtasks: 2, comments: 3 },
-    { id: "t9", title: "Rate limiting middleware", priority: "P1", assignee: "KL", tag: "Infra", dueDate: "Oct 13", comments: 6 },
-  ],
-  Done: [
-    { id: "t10", title: "Set up Datadog APM", priority: "P1", assignee: "TN", tag: "Infra", dueDate: "Oct 10", subtasks: 5, comments: 2 },
-    { id: "t11", title: "Fix Stripe webhook race condition", priority: "P0", assignee: "KL", tag: "Bug", dueDate: "Oct 9", comments: 9 },
-    { id: "t12", title: "Launch beta invite flow", priority: "P1", assignee: "MR", tag: "Feature", dueDate: "Oct 8", subtasks: 8 },
-  ],
-};
-
-const TEAM = [
-  { initials: "KL", name: "Kai Larsson", role: "Backend", tasks: 8, done: 5 },
-  { initials: "MR", name: "Maya Reyes", role: "Design", tasks: 6, done: 3 },
-  { initials: "SO", name: "Sadie Okonkwo", role: "Backend", tasks: 5, done: 4 },
-  { initials: "TN", name: "Tomás Nkosi", role: "Frontend", tasks: 4, done: 2 },
-  { initials: "PR", name: "Priya Rao", role: "PM", tasks: 3, done: 1 },
+const COLUMNS = [
+  { key: "todo", label: "To do", color: "#a0a09a" },
+  { key: "in_progress", label: "In progress", color: "#d4ff00" },
+  { key: "completed", label: "Done", color: "#7dd3fc" },
 ];
+const inputStyle = { background: "#0a0a0a", border: "1px solid #222220" };
 
-const ACTIVITY = [
-  { user: "KL", action: "closed", target: "Fix Stripe webhook race condition", time: "2m ago", type: "done" },
-  { user: "MR", action: "moved to Review", target: "Redesign onboarding step 2", time: "18m ago", type: "review" },
-  { user: "SO", action: "commented on", target: "Write migration script for v2 schema", time: "34m ago", type: "comment" },
-  { user: "TN", action: "opened", target: "Add audit log export endpoint", time: "1h ago", type: "open" },
-  { user: "PR", action: "created", target: "Draft Q4 OKRs doc", time: "2h ago", type: "open" },
-  { user: "KL", action: "flagged as P0", target: "Implement webhook retry logic", time: "3h ago", type: "alert" },
-];
-
-const NAV_ITEMS = [
-  { icon: "⊞", label: "Dashboard" },
-  { icon: "◫", label: "Board" },
-  { icon: "≡", label: "Backlog" },
-  { icon: "◷", label: "Timeline" },
-  { icon: "↗", label: "Reports" },
-  { icon: "⚙", label: "Settings" },
-];
-
-const PROJECTS = [
-  { name: "Platform v2", color: "#d4ff00", progress: 62 },
-  { name: "Mobile App", color: "#7dd3fc", progress: 41 },
-  { name: "API Redesign", color: "#f9a8d4", progress: 88 },
-];
-
-const PRIORITY_COLOR = {
-  P0: "#ff6b6b",
-  P1: "#d4ff00",
-  P2: "#a0a09a",
-  P3: "#3a3a38",
-};
-
-const STATUS_COLUMNS = ["Backlog", "In Progress", "Review", "Done"];
-
-const STATUS_ACCENT = {
-  Backlog: "#3a3a38",
-  "In Progress": "#d4ff00",
-  Review: "#7dd3fc",
-  Done: "#6b6b65",
-};
-
-function KanbanCard({ task, status }) {
-  return (
-    <div
-      className="p-3 rounded-sm cursor-pointer group transition-colors"
-      style={{ backgroundColor: "#111111", border: "1px solid #1e1e1e" }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#2e2e2e")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1e1e1e")}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span
-          className="px-1.5 py-0.5 text-xs font-display uppercase"
-          style={{ color: PRIORITY_COLOR[task.priority], border: `1px solid ${PRIORITY_COLOR[task.priority]}22` }}
-        >
-          {task.priority}
-        </span>
-        <span className="text-xs" style={{ color: "#3a3a38" }}>
-          {task.tag}
-        </span>
-      </div>
-      <p className="text-sm mb-3 leading-snug" style={{ color: status === "Done" ? "#6b6b65" : "#f0efe8" }}>
-        {task.title}
-      </p>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs" style={{ color: "#6b6b65" }}>
-          {task.subtasks && <span title="Subtasks">◧ {task.subtasks}</span>}
-          {task.comments && <span title="Comments">◻ {task.comments}</span>}
-          <span>· {task.dueDate}</span>
-        </div>
-        <div
-          className="w-6 h-6 flex items-center justify-center text-xs font-display font-700 flex-shrink-0"
-          style={{ backgroundColor: "#1a1a1a", color: "#a0a09a", border: "1px solid #222220" }}
-        >
-          {task.assignee}
-        </div>
-      </div>
-    </div>
-  );
+function AuthScreen({ onAuthenticated }) {
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(event) {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      if (mode === "register") await api("/auth/register", { method: "POST", body: { name, email, password } });
+      const session = await api("/auth/login", { method: "POST", body: { email, password } });
+      localStorage.setItem("taskforge-token", session.token); onAuthenticated(session.token);
+    } catch (requestError) { setError(requestError.message); } finally { setBusy(false); }
+  }
+  return <main className="min-h-screen grid place-items-center p-6" style={{ background: "#0a0a0a", color: "#f0efe8" }}>
+    <form onSubmit={submit} className="w-full max-w-md p-8" style={{ background: "#111", border: "1px solid #222220" }}>
+      <div className="flex items-center gap-2 mb-8"><span className="w-8 h-8 grid place-items-center font-display font-bold" style={{ background: "#d4ff00", color: "#0a0a0a" }}>TF</span><span className="font-display uppercase tracking-widest">TaskForge</span></div>
+      <h1 className="font-display text-4xl uppercase mb-2">{mode === "login" ? "Welcome back" : "Create account"}</h1><p className="text-sm mb-6" style={{ color: "#a0a09a" }}>Local API: {API_URL}</p>
+      {mode === "register" && <label className="block text-sm mb-4">Name<input required minLength="2" value={name} onChange={(e) => setName(e.target.value)} className="block mt-1 w-full p-3" style={inputStyle} /></label>}
+      <label className="block text-sm mb-4">Email<input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="block mt-1 w-full p-3" style={inputStyle} /></label>
+      <label className="block text-sm mb-5">Password<input required minLength="6" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="block mt-1 w-full p-3" style={inputStyle} /></label>
+      {error && <p className="text-sm mb-4" style={{ color: "#ff6b6b" }}>{error}</p>}
+      <button disabled={busy} className="w-full p-3 font-display uppercase tracking-wider disabled:opacity-50" style={{ background: "#d4ff00", color: "#0a0a0a" }}>{busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}</button>
+      <button type="button" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }} className="w-full mt-4 text-sm" style={{ color: "#a0a09a" }}>{mode === "login" ? "Need an account? Register" : "Already have an account? Sign in"}</button>
+    </form>
+  </main>;
 }
 
 export default function Dashboard({ onBack }) {
-  const [board] = useState(INITIAL_BOARD);
-  const [activeProject, setActiveProject] = useState("Platform v2");
-  const [activeNav, setActiveNav] = useState("Dashboard");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const totalTasks = Object.values(board).flat().length;
-  const doneTasks = board["Done"].length;
-  const inProgressTasks = board["In Progress"].length;
-  const blockers = board["In Progress"].filter((t) => t.priority === "P0").length;
-
-  return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#0a0a0a", color: "#f0efe8" }}>
-      {/* Sidebar */}
-      <aside
-        className="flex flex-col flex-shrink-0 transition-all duration-200"
-        style={{ width: sidebarCollapsed ? 56 : 220, borderRight: "1px solid #1a1a1a", backgroundColor: "#0a0a0a" }}
-      >
-        <div
-          className="flex items-center gap-2 px-3 py-4 flex-shrink-0"
-          style={{ borderBottom: "1px solid #1a1a1a", height: 56 }}
-        >
-          <div
-            className="w-7 h-7 flex items-center justify-center font-display font-bold text-xs flex-shrink-0"
-            style={{ backgroundColor: "#d4ff00", color: "#0a0a0a" }}
-          >
-            TF
-          </div>
-          {!sidebarCollapsed && (
-            <span className="font-display font-700 text-xs uppercase tracking-widest truncate" style={{ letterSpacing: "0.1em" }}>
-              TaskForge
-            </span>
-          )}
-          <button
-            className="ml-auto text-xs flex-shrink-0 transition-colors"
-            style={{ color: "#3a3a38" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#6b6b65")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#3a3a38")}
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            title={sidebarCollapsed ? "Expand" : "Collapse"}
-          >
-            {sidebarCollapsed ? "▶" : "◀"}
-          </button>
-        </div>
-
-        <nav className="flex-1 py-3 overflow-hidden">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
-              style={{
-                color: activeNav === item.label ? "#f0efe8" : "#6b6b65",
-                backgroundColor: activeNav === item.label ? "#1a1a1a" : "transparent",
-              }}
-              onMouseEnter={(e) => { if (activeNav !== item.label) e.currentTarget.style.color = "#a0a09a"; }}
-              onMouseLeave={(e) => { if (activeNav !== item.label) e.currentTarget.style.color = "#6b6b65"; }}
-              onClick={() => setActiveNav(item.label)}
-            >
-              <span className="text-base flex-shrink-0 w-5 text-center">{item.icon}</span>
-              {!sidebarCollapsed && <span className="text-sm font-medium truncate">{item.label}</span>}
-              {!sidebarCollapsed && item.label === "Dashboard" && (
-                <span className="ml-auto text-xs font-display px-1.5 py-0.5" style={{ backgroundColor: "#1e2a00", color: "#d4ff00" }}>
-                  3
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-
-        {!sidebarCollapsed && (
-          <div className="px-3 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
-            <p className="text-xs uppercase tracking-widest mb-2 font-display" style={{ color: "#3a3a38" }}>
-              Projects
-            </p>
-            {PROJECTS.map((p) => (
-              <button
-                key={p.name}
-                className="w-full flex items-center gap-2 py-1.5 text-left"
-                onClick={() => setActiveProject(p.name)}
-              >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-xs truncate flex-1" style={{ color: activeProject === p.name ? "#f0efe8" : "#6b6b65" }}>
-                  {p.name}
-                </span>
-                <span className="text-xs" style={{ color: "#3a3a38" }}>{p.progress}%</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 px-3 py-3 flex-shrink-0" style={{ borderTop: "1px solid #1a1a1a" }}>
-          <div
-            className="w-7 h-7 flex items-center justify-center text-xs font-display font-700 flex-shrink-0"
-            style={{ backgroundColor: "#1a1a1a", color: "#a0a09a", border: "1px solid #222220" }}
-          >
-            YO
-          </div>
-          {!sidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium truncate">Your Org</div>
-              <div className="text-xs truncate" style={{ color: "#6b6b65" }}>Pro plan</div>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header
-          className="flex items-center justify-between px-6 flex-shrink-0"
-          style={{ height: 56, borderBottom: "1px solid #1a1a1a", backgroundColor: "#0a0a0a" }}
-        >
-          <div>
-            <h1 className="font-display font-700 text-base uppercase tracking-wide">{activeProject}</h1>
-            <p className="text-xs" style={{ color: "#6b6b65" }}>Sprint 14 · Oct 7 – 20</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs"
-              style={{ border: "1px solid #1a1a1a", color: "#6b6b65", backgroundColor: "#111111", width: 180 }}
-            >
-              <span>⌕</span>
-              <span>Search tasks…</span>
-              <span className="ml-auto" style={{ color: "#3a3a38" }}>⌘K</span>
-            </div>
-            <div className="flex -space-x-2">
-              {TEAM.slice(0, 4).map((m) => (
-                <div
-                  key={m.initials}
-                  className="w-7 h-7 flex items-center justify-center text-xs font-display font-700 flex-shrink-0"
-                  style={{ backgroundColor: "#1a1a1a", color: "#a0a09a", border: "2px solid #0a0a0a" }}
-                  title={m.name}
-                >
-                  {m.initials}
-                </div>
-              ))}
-            </div>
-            <button
-              className="px-3 py-1.5 text-xs font-display uppercase tracking-wider transition-opacity hover:opacity-80"
-              style={{ backgroundColor: "#d4ff00", color: "#0a0a0a" }}
-            >
-              + Task
-            </button>
-            <button
-              className="text-xs px-3 py-1.5 transition-colors"
-              style={{ border: "1px solid #1a1a1a", color: "#6b6b65" }}
-              onClick={onBack}
-            >
-              ← Exit
-            </button>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto">
-          {/* Summary cards */}
-          <section className="px-6 pt-6 pb-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                { label: "Total Tasks", value: totalTasks, sub: "this sprint" },
-                { label: "In Progress", value: inProgressTasks, sub: "active right now" },
-                { label: "Completed", value: doneTasks, sub: `of ${totalTasks} tasks` },
-                { label: "Blockers", value: blockers, sub: "need attention" },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="p-4 rounded-sm"
-                  style={{
-                    backgroundColor: "#111111",
-                    border: card.label === "Blockers" && blockers > 0 ? "1px solid #3a1a1a" : "1px solid #1a1a1a",
-                  }}
-                >
-                  <p className="text-xs uppercase tracking-widest mb-2 font-display" style={{ color: "#6b6b65" }}>
-                    {card.label}
-                  </p>
-                  <p
-                    className="font-display font-800 text-4xl leading-none mb-1"
-                    style={{
-                      letterSpacing: "-0.02em",
-                      color:
-                        card.label === "In Progress" ? "#d4ff00"
-                        : card.label === "Blockers" && blockers > 0 ? "#ff6b6b"
-                        : "#f0efe8",
-                    }}
-                  >
-                    {card.value}
-                  </p>
-                  <p className="text-xs" style={{ color: "#6b6b65" }}>{card.sub}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Sprint progress + team */}
-          <section className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div className="lg:col-span-2 p-4 rounded-sm" style={{ backgroundColor: "#111111", border: "1px solid #1a1a1a" }}>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs font-display uppercase tracking-widest" style={{ color: "#6b6b65" }}>Sprint Progress</p>
-                <span className="text-xs" style={{ color: "#6b6b65" }}>6 days remaining</span>
-              </div>
-              <div className="w-full h-2 rounded-full overflow-hidden mb-3" style={{ backgroundColor: "#1a1a1a" }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${(doneTasks / totalTasks) * 100}%`, backgroundColor: "#d4ff00" }}
-                />
-              </div>
-              <div className="flex justify-between text-xs mb-5" style={{ color: "#6b6b65" }}>
-                <span>{Math.round((doneTasks / totalTasks) * 100)}% complete</span>
-                <span>{doneTasks} / {totalTasks} tasks</span>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {STATUS_COLUMNS.map((col) => (
-                  <div key={col}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: STATUS_ACCENT[col] }} />
-                      <span className="text-xs font-display" style={{ color: "#6b6b65" }}>{col}</span>
-                    </div>
-                    <span className="font-display font-700 text-xl" style={{ color: "#f0efe8" }}>{board[col].length}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-sm" style={{ backgroundColor: "#111111", border: "1px solid #1a1a1a" }}>
-              <p className="text-xs font-display uppercase tracking-widest mb-4" style={{ color: "#6b6b65" }}>Team Workload</p>
-              <div className="space-y-3">
-                {TEAM.map((m) => (
-                  <div key={m.initials}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-5 h-5 flex items-center justify-center text-xs font-display font-700"
-                          style={{ backgroundColor: "#1a1a1a", color: "#a0a09a", border: "1px solid #222220" }}
-                        >
-                          {m.initials}
-                        </div>
-                        <span className="text-xs" style={{ color: "#f0efe8" }}>{m.name}</span>
-                      </div>
-                      <span className="text-xs" style={{ color: "#6b6b65" }}>{m.done}/{m.tasks}</span>
-                    </div>
-                    <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: "#1a1a1a" }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${(m.done / m.tasks) * 100}%`, backgroundColor: "#d4ff00", opacity: 0.7 }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Kanban board */}
-          <section className="px-6 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-display uppercase tracking-widest" style={{ color: "#6b6b65" }}>Kanban Board</p>
-              <div className="flex items-center gap-2 text-xs" style={{ color: "#6b6b65" }}>
-                <button onMouseEnter={(e) => (e.currentTarget.style.color = "#f0efe8")} onMouseLeave={(e) => (e.currentTarget.style.color = "#6b6b65")}>Filter</button>
-                <span style={{ color: "#1a1a1a" }}>|</span>
-                <button onMouseEnter={(e) => (e.currentTarget.style.color = "#f0efe8")} onMouseLeave={(e) => (e.currentTarget.style.color = "#6b6b65")}>Group by: Assignee</button>
-                <span style={{ color: "#1a1a1a" }}>|</span>
-                <button onMouseEnter={(e) => (e.currentTarget.style.color = "#f0efe8")} onMouseLeave={(e) => (e.currentTarget.style.color = "#6b6b65")}>Sort: Priority</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-3 min-w-0">
-              {STATUS_COLUMNS.map((col) => (
-                <div key={col} className="flex flex-col min-w-0">
-                  <div
-                    className="flex items-center justify-between px-3 py-2 mb-2 rounded-sm"
-                    style={{ backgroundColor: "#111111", border: "1px solid #1a1a1a" }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: STATUS_ACCENT[col] }} />
-                      <span className="font-display font-600 text-xs uppercase tracking-wider">{col}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-display text-xs px-1.5 py-0.5" style={{ backgroundColor: "#1a1a1a", color: "#6b6b65" }}>
-                        {board[col].length}
-                      </span>
-                      <button className="text-xs" style={{ color: "#3a3a38" }}>+</button>
-                    </div>
-                  </div>
-                  <div className="space-y-2 flex-1">
-                    {board[col].map((task) => (
-                      <KanbanCard key={task.id} task={task} status={col} />
-                    ))}
-                    <button
-                      className="w-full py-2 text-xs text-left px-3 rounded-sm transition-colors"
-                      style={{ border: "1px dashed #1a1a1a", color: "#3a3a38" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#2e2e2e"; e.currentTarget.style.color = "#6b6b65"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1a1a1a"; e.currentTarget.style.color = "#3a3a38"; }}
-                    >
-                      + Add task
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Activity feed */}
-          <section className="px-6 pb-6">
-            <div className="rounded-sm p-4" style={{ backgroundColor: "#111111", border: "1px solid #1a1a1a" }}>
-              <p className="text-xs font-display uppercase tracking-widest mb-4" style={{ color: "#6b6b65" }}>Activity</p>
-              <div className="space-y-0 divide-y" style={{ borderColor: "#1a1a1a" }}>
-                {ACTIVITY.map((a, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2.5">
-                    <div
-                      className="w-6 h-6 flex items-center justify-center text-xs font-display font-700 flex-shrink-0"
-                      style={{ backgroundColor: "#1a1a1a", color: "#a0a09a", border: "1px solid #222220" }}
-                    >
-                      {a.user}
-                    </div>
-                    <div className="flex-1 text-sm min-w-0">
-                      <span style={{ color: "#a0a09a" }}>{a.action} </span>
-                      <span className="font-medium" style={{ color: "#f0efe8" }}>{a.target}</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            a.type === "done" ? "#d4ff00"
-                            : a.type === "alert" ? "#ff6b6b"
-                            : a.type === "review" ? "#7dd3fc"
-                            : "#3a3a38",
-                        }}
-                      />
-                      <span className="text-xs" style={{ color: "#6b6b65" }}>{a.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  );
+  const [token, setToken] = useState(() => localStorage.getItem("taskforge-token"));
+  const [user, setUser] = useState(null), [projects, setProjects] = useState([]), [activeProjectId, setActiveProjectId] = useState(""), [tasks, setTasks] = useState([]);
+  const [newProject, setNewProject] = useState(""), [newTask, setNewTask] = useState(""), [error, setError] = useState(""), [loading, setLoading] = useState(false);
+  const activeProject = projects.find((project) => project.id === activeProjectId);
+  const grouped = useMemo(() => Object.fromEntries(COLUMNS.map((column) => [column.key, tasks.filter((task) => task.status === column.key)])), [tasks]);
+  function logout() { localStorage.removeItem("taskforge-token"); setToken(null); setUser(null); setProjects([]); setTasks([]); setActiveProjectId(""); }
+  async function loadProjects(sessionToken = token) {
+    if (!sessionToken) return; setLoading(true); setError("");
+    try { const [me, list] = await Promise.all([api("/auth/me", { token: sessionToken }), api("/projects", { token: sessionToken })]); setUser(me); setProjects(list); setActiveProjectId((id) => list.some((project) => project.id === id) ? id : (list[0]?.id || "")); }
+    catch (requestError) { setError(requestError.message); if (requestError.message.includes("token")) logout(); } finally { setLoading(false); }
+  }
+  async function loadTasks(id = activeProjectId) { if (!id || !token) return setTasks([]); try { setTasks(await api(`/projects/${id}/tasks`, { token })); } catch (requestError) { setError(requestError.message); } }
+  useEffect(() => { loadProjects(); }, [token]);
+  useEffect(() => { loadTasks(); }, [activeProjectId]);
+  async function createProject(event) { event.preventDefault(); try { const project = await api("/projects", { token, method: "POST", body: { name: newProject } }); setNewProject(""); await loadProjects(); setActiveProjectId(project.id); } catch (requestError) { setError(requestError.message); } }
+  async function createTask(event) { event.preventDefault(); if (!activeProjectId) return; try { const task = await api(`/projects/${activeProjectId}/tasks`, { token, method: "POST", body: { title: newTask } }); setTasks((current) => [...current, task]); setNewTask(""); } catch (requestError) { setError(requestError.message); } }
+  async function updateTask(id, status) { try { const changed = await api(`/tasks/${id}`, { token, method: "PATCH", body: { status } }); setTasks((current) => current.map((task) => task.id === id ? changed : task)); } catch (requestError) { setError(requestError.message); } }
+  async function deleteTask(id) { try { await api(`/tasks/${id}`, { token, method: "DELETE" }); setTasks((current) => current.filter((task) => task.id !== id)); } catch (requestError) { setError(requestError.message); } }
+  if (!token) return <AuthScreen onAuthenticated={setToken} />;
+  return <main className="min-h-screen p-6 md:p-8" style={{ background: "#0a0a0a", color: "#f0efe8" }}>
+    <header className="max-w-7xl mx-auto flex flex-wrap gap-4 items-center justify-between pb-6" style={{ borderBottom: "1px solid #222220" }}><div className="flex items-center gap-3"><span className="w-8 h-8 grid place-items-center font-display font-bold" style={{ background: "#d4ff00", color: "#0a0a0a" }}>TF</span><div><h1 className="font-display text-xl uppercase tracking-wider">TaskForge</h1><p className="text-xs" style={{ color: "#6b6b65" }}>{user?.email || "Loading account…"}</p></div></div><div className="flex gap-2"><button onClick={logout} className="px-3 py-2 text-sm" style={inputStyle}>Sign out</button><button onClick={onBack} className="px-3 py-2 text-sm" style={inputStyle}>Exit</button></div></header>
+    <div className="max-w-7xl mx-auto grid lg:grid-cols-[260px_1fr] gap-6 pt-6"><aside className="p-4" style={{ background: "#111", border: "1px solid #222220" }}><p className="font-display uppercase tracking-widest text-xs mb-3" style={{ color: "#6b6b65" }}>Projects</p><div className="space-y-1 mb-5">{projects.map((project) => <button key={project.id} onClick={() => setActiveProjectId(project.id)} className="w-full text-left p-2 text-sm" style={{ background: project.id === activeProjectId ? "#1a1a1a" : "transparent", color: project.id === activeProjectId ? "#d4ff00" : "#a0a09a" }}>{project.name}</button>)}</div><form onSubmit={createProject} className="space-y-2"><input required minLength="3" value={newProject} onChange={(e) => setNewProject(e.target.value)} placeholder="New project" className="w-full p-2 text-sm" style={inputStyle} /><button className="w-full p-2 text-xs font-display uppercase" style={{ background: "#d4ff00", color: "#0a0a0a" }}>Create project</button></form></aside>
+      <section>{error && <p className="mb-4 p-3 text-sm" style={{ color: "#ff6b6b", border: "1px solid #3a1a1a" }}>{error}</p>}{!activeProject ? <div className="p-10 text-center" style={{ border: "1px solid #222220", color: "#a0a09a" }}>{loading ? "Loading projects…" : "Create a project to start tracking work."}</div> : <><div className="flex flex-wrap justify-between gap-4 mb-5"><div><p className="text-xs uppercase tracking-widest" style={{ color: "#6b6b65" }}>Project workspace</p><h2 className="font-display text-4xl uppercase">{activeProject.name}</h2></div><form onSubmit={createTask} className="flex gap-2 self-end"><input required minLength="3" value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Task title" className="p-2 text-sm" style={inputStyle} /><button className="px-3 py-2 text-sm font-display uppercase" style={{ background: "#d4ff00", color: "#0a0a0a" }}>+ Task</button></form></div><div className="grid md:grid-cols-3 gap-4">{COLUMNS.map((column) => <div key={column.key} className="p-3 min-h-80" style={{ background: "#111", border: "1px solid #222220" }}><div className="flex justify-between items-center mb-3"><h3 className="font-display uppercase tracking-wider" style={{ color: column.color }}>{column.label}</h3><span className="text-xs" style={{ color: "#6b6b65" }}>{grouped[column.key].length}</span></div><div className="space-y-2">{grouped[column.key].map((task) => <article key={task.id} className="p-3" style={{ background: "#0a0a0a", border: "1px solid #222220" }}><p className="text-sm mb-3">{task.title}</p><div className="flex gap-2 items-center"><select value={task.status} onChange={(e) => updateTask(task.id, e.target.value)} className="flex-1 p-1 text-xs" style={{ background: "#111", border: "1px solid #222220", color: "#a0a09a" }}>{COLUMNS.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}</select><button onClick={() => deleteTask(task.id)} className="text-xs" style={{ color: "#ff6b6b" }}>Delete</button></div></article>)}</div></div>)}</div></>}</section></div>
+  </main>;
 }
