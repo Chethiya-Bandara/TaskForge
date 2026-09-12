@@ -1,29 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Work+Sans:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: #0a0a0a;
+  --color-foreground: #f0efe8;
+  --color-card: #111111;
+  --color-card-foreground: #f0efe8;
+  --color-primary: #d4ff00;
+  --color-primary-foreground: #0a0a0a;
+  --color-secondary: #1a1a1a;
+  --color-secondary-foreground: #a0a09a;
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #6b6b65;
+  --color-accent: #d4ff00;
+  --color-accent-foreground: #0a0a0a;
+  --color-border: #222220;
+  --radius: 2px;
+}
+
 * {
-  box-sizing: border-box;
+  scrollbar-width: none;
 }
-
-html,
-body,
-#root {
-  width: 100%;
-  min-width: 100%;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  background: #0f1117;
+*::-webkit-scrollbar {
+  display: none;
 }
 
 body {
-  background: #0f1117;
-  color: #f8fafc;
-  font-family: Arial, sans-serif;
+  background-color: #0a0a0a;
+  color: #f0efe8;
+  font-family: 'Work Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  width: 100%;
-  max-width: none;
-  text-align: left;
+.font-display {
+  font-family: 'Barlow Condensed', sans-serif;
 }
