@@ -3,11 +3,16 @@ import AuthScreen from "./AuthScreen"
 import { api } from "./api"
 
 const COLUMNS = [
-  { key: "todo", label: "To do", color: "#a0a09a" },
-  { key: "in_progress", label: "In progress", color: "#d4ff00" },
-  { key: "completed", label: "Done", color: "#7dd3fc" },
+  { key: "todo", label: "To do", color: "#64748b" },
+  { key: "in_progress", label: "In progress", color: "#2563eb" },
+  { key: "completed", label: "Done", color: "#16a34a" },
 ]
-const inputStyle = { background: "#0a0a0a", border: "1px solid #222220" }
+const inputStyle = {
+  background: "#ffffff",
+  border: "1px solid #cbd5e1",
+  borderRadius: 6,
+  color: "#172033",
+}
 
 function getLocalDateString() {
   const today = new Date()
@@ -54,7 +59,7 @@ function DueDateEditor({ task, overdue, onSave }) {
     <div className="mb-3">
       <label
         className="block text-xs"
-        style={{ color: overdue ? "#ff6b6b" : "#a0a09a" }}
+        style={{ color: overdue ? "#dc2626" : "#526277" }}
       >
         Due date
         <input
@@ -73,7 +78,7 @@ function DueDateEditor({ task, overdue, onSave }) {
           onClick={saveDueDate}
           disabled={!hasChanges || isSaving}
           className="text-xs disabled:opacity-50"
-          style={{ color: "#d4ff00" }}
+          style={{ color: "#2563eb" }}
         >
           {isSaving ? "Saving…" : "Save due date"}
         </button>
@@ -83,7 +88,7 @@ function DueDateEditor({ task, overdue, onSave }) {
             onClick={removeDueDate}
             disabled={isSaving}
             className="text-xs disabled:opacity-50"
-            style={{ color: "#a0a09a" }}
+            style={{ color: "#526277" }}
           >
             Remove due date
           </button>
@@ -93,7 +98,7 @@ function DueDateEditor({ task, overdue, onSave }) {
   )
 }
 
-export default function Dashboard({ onBack }) {
+export default function Dashboard({ authMode, onBack }) {
   const [token, setToken] = useState(() =>
     localStorage.getItem("taskforge-token"),
   )
@@ -127,6 +132,7 @@ export default function Dashboard({ onBack }) {
     setProjects([])
     setTasks([])
     setActiveProjectId("")
+    onBack()
   }
   async function loadProjects(sessionToken = token) {
     if (!sessionToken) return
@@ -237,20 +243,28 @@ export default function Dashboard({ onBack }) {
       setError(requestError.message)
     }
   }
-  if (!token) return <AuthScreen onAuthenticated={setToken} />
+  if (!token) {
+    return (
+      <AuthScreen
+        initialMode={authMode}
+        onAuthenticated={setToken}
+        onBack={onBack}
+      />
+    )
+  }
   return (
     <main
       className="min-h-screen p-6 md:p-8"
-      style={{ background: "#0a0a0a", color: "#f0efe8" }}
+      style={{ background: "#f5f7fb", color: "#172033" }}
     >
       <header
         className="max-w-7xl mx-auto flex flex-wrap gap-4 items-center justify-between pb-6"
-        style={{ borderBottom: "1px solid #222220" }}
+        style={{ borderBottom: "1px solid #dbe3ef" }}
       >
         <div className="flex items-center gap-3">
           <span
             className="w-8 h-8 grid place-items-center font-display font-bold"
-            style={{ background: "#d4ff00", color: "#0a0a0a" }}
+            style={{ background: "#2563eb", color: "#ffffff", borderRadius: 8 }}
           >
             TF
           </span>
@@ -258,9 +272,6 @@ export default function Dashboard({ onBack }) {
             <h1 className="font-display text-xl uppercase tracking-wider">
               TaskForge
             </h1>
-            <p className="text-xs" style={{ color: "#6b6b65" }}>
-              {user?.email || "Welcome!"}
-            </p>
           </div>
         </div>
 
@@ -272,23 +283,25 @@ export default function Dashboard({ onBack }) {
           >
             Sign out
           </button>
-          <button
-            onClick={onBack}
-            className="px-3 py-2 text-sm"
-            style={inputStyle}
-          >
-            Exit
-          </button>
         </div>
       </header>
       <div className="max-w-7xl mx-auto grid lg:grid-cols-[260px_1fr] gap-6 pt-6">
+        <p className="text-xl" style={{ color: "#172033" }}>
+          Welcome back, {user?.name || "User!"}!
+        </p>
+      </div>
+      <div className="max-w-7xl mx-auto grid lg:grid-cols-[260px_1fr] gap-6 pt-6">
         <aside
           className="p-4"
-          style={{ background: "#111", border: "1px solid #222220" }}
+          style={{
+            background: "#ffffff",
+            border: "1px solid #dbe3ef",
+            borderRadius: 12,
+          }}
         >
           <p
             className="font-display uppercase tracking-widest text-xs mb-3"
-            style={{ color: "#6b6b65" }}
+            style={{ color: "#64748b" }}
           >
             Projects
           </p>
@@ -300,8 +313,8 @@ export default function Dashboard({ onBack }) {
                 className="w-full text-left p-2 text-sm"
                 style={{
                   background:
-                    project.id === activeProjectId ? "#1a1a1a" : "transparent",
-                  color: project.id === activeProjectId ? "#d4ff00" : "#a0a09a",
+                    project.id === activeProjectId ? "#eff6ff" : "transparent",
+                  color: project.id === activeProjectId ? "#2563eb" : "#526277",
                 }}
               >
                 {project.name}
@@ -320,7 +333,11 @@ export default function Dashboard({ onBack }) {
             />
             <button
               className="w-full p-2 text-xs font-display uppercase"
-              style={{ background: "#d4ff00", color: "#0a0a0a" }}
+              style={{
+                background: "#2563eb",
+                color: "#ffffff",
+                borderRadius: 6,
+              }}
             >
               Create project
             </button>
@@ -330,7 +347,12 @@ export default function Dashboard({ onBack }) {
           {error && (
             <p
               className="mb-4 p-3 text-sm"
-              style={{ color: "#ff6b6b", border: "1px solid #3a1a1a" }}
+              style={{
+                color: "#dc2626",
+                border: "1px solid #fecaca",
+                background: "#fef2f2",
+                borderRadius: 8,
+              }}
             >
               {error}
             </p>
@@ -338,7 +360,12 @@ export default function Dashboard({ onBack }) {
           {!activeProject ? (
             <div
               className="p-10 text-center"
-              style={{ border: "1px solid #222220", color: "#a0a09a" }}
+              style={{
+                border: "1px solid #dbe3ef",
+                color: "#526277",
+                background: "#ffffff",
+                borderRadius: 12,
+              }}
             >
               {loading
                 ? "Loading projects…"
@@ -349,14 +376,12 @@ export default function Dashboard({ onBack }) {
               <div className="flex flex-wrap justify-between gap-4 mb-5">
                 <div>
                   <p
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: "#6b6b65" }}
+                    className="text-xl uppercase tracking-widest"
+                    style={{ color: "#2563eb" }}
                   >
-                    Project workspace
+                    Projects / {activeProject.name}
                   </p>
-                  <h2 className="font-display text-4xl uppercase">
-                    {activeProject.name}
-                  </h2>
+                  <h2 className="font-display text-4xl uppercase">Board</h2>
                 </div>
                 <form
                   onSubmit={createTask}
@@ -381,7 +406,11 @@ export default function Dashboard({ onBack }) {
                   />
                   <button
                     className="px-3 py-2 text-sm font-display uppercase"
-                    style={{ background: "#d4ff00", color: "#0a0a0a" }}
+                    style={{
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      borderRadius: 6,
+                    }}
                   >
                     + Task
                   </button>
@@ -392,7 +421,11 @@ export default function Dashboard({ onBack }) {
                   <div
                     key={column.key}
                     className="p-3 min-h-80"
-                    style={{ background: "#111", border: "1px solid #222220" }}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #dbe3ef",
+                      borderRadius: 10,
+                    }}
                   >
                     <div className="flex justify-between items-center mb-3">
                       <h3
@@ -401,7 +434,7 @@ export default function Dashboard({ onBack }) {
                       >
                         {column.label}
                       </h3>
-                      <span className="text-xs" style={{ color: "#6b6b65" }}>
+                      <span className="text-xs" style={{ color: "#64748b" }}>
                         {grouped[column.key].length}
                       </span>
                     </div>
@@ -414,10 +447,11 @@ export default function Dashboard({ onBack }) {
                             key={task.id}
                             className="p-3"
                             style={{
-                              background: overdue ? "#1a0a0a" : "#0a0a0a",
+                              background: overdue ? "#fef2f2" : "#ffffff",
                               border: overdue
-                                ? "1px solid #ff6b6b"
-                                : "1px solid #222220",
+                                ? "1px solid #fca5a5"
+                                : "1px solid #dbe3ef",
+                              borderRadius: 8,
                             }}
                           >
                             <div className="flex items-center justify-between gap-2 mb-3">
@@ -426,8 +460,9 @@ export default function Dashboard({ onBack }) {
                                 <span
                                   className="px-2 py-1 text-xs font-display uppercase"
                                   style={{
-                                    color: "#ff6b6b",
-                                    border: "1px solid #7f1d1d",
+                                    color: "#dc2626",
+                                    border: "1px solid #fca5a5",
+                                    background: "#fff1f2",
                                   }}
                                 >
                                   Overdue
@@ -447,9 +482,9 @@ export default function Dashboard({ onBack }) {
                                 }
                                 className="flex-1 p-1 text-xs"
                                 style={{
-                                  background: "#111",
-                                  border: "1px solid #222220",
-                                  color: "#a0a09a",
+                                  background: "#ffffff",
+                                  border: "1px solid #cbd5e1",
+                                  color: "#526277",
                                 }}
                               >
                                 {COLUMNS.map((option) => (
@@ -461,7 +496,7 @@ export default function Dashboard({ onBack }) {
                               <button
                                 onClick={() => deleteTask(task.id)}
                                 className="text-xs"
-                                style={{ color: "#ff6b6b" }}
+                                style={{ color: "#dc2626" }}
                               >
                                 Delete
                               </button>

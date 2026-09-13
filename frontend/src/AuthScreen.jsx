@@ -1,15 +1,25 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { api } from "./api"
 
-const inputStyle = { background: "#0a0a0a", border: "1px solid #222220" }
+const inputStyle = {
+  background: "#ffffff",
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  color: "#172033",
+}
 
-export default function AuthScreen({ onAuthenticated }) {
-  const [mode, setMode] = useState("login")
+export default function AuthScreen({ initialMode, onAuthenticated, onBack }) {
+  const [mode, setMode] = useState(initialMode)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setMode(initialMode)
+    setError("")
+  }, [initialMode])
 
   async function submit(event) {
     event.preventDefault()
@@ -40,17 +50,22 @@ export default function AuthScreen({ onAuthenticated }) {
   return (
     <main
       className="min-h-screen grid place-items-center p-6"
-      style={{ background: "#0a0a0a", color: "#f0efe8" }}
+      style={{ background: "#f5f7fb", color: "#172033" }}
     >
       <form
         onSubmit={submit}
         className="w-full max-w-md p-8"
-        style={{ background: "#111", border: "1px solid #222220" }}
+        style={{
+          background: "#ffffff",
+          border: "1px solid #dbe3ef",
+          borderRadius: 16,
+          boxShadow: "0 20px 60px rgba(15, 23, 42, 0.10)",
+        }}
       >
         <div className="flex items-center gap-2 mb-8">
           <span
             className="w-8 h-8 grid place-items-center font-display font-bold"
-            style={{ background: "#d4ff00", color: "#0a0a0a" }}
+            style={{ background: "#2563eb", color: "#ffffff", borderRadius: 8 }}
           >
             TF
           </span>
@@ -98,14 +113,14 @@ export default function AuthScreen({ onAuthenticated }) {
           />
         </label>
         {error && (
-          <p className="text-sm mb-4" style={{ color: "#ff6b6b" }}>
+          <p className="text-sm mb-4" style={{ color: "#dc2626" }}>
             {error}
           </p>
         )}
         <button
           disabled={busy}
           className="w-full p-3 font-display uppercase tracking-wider disabled:opacity-50"
-          style={{ background: "#d4ff00", color: "#0a0a0a" }}
+          style={{ background: "#2563eb", color: "#ffffff", borderRadius: 8 }}
         >
           {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
         </button>
@@ -116,11 +131,19 @@ export default function AuthScreen({ onAuthenticated }) {
             setError("")
           }}
           className="w-full mt-4 text-sm"
-          style={{ color: "#a0a09a" }}
+          style={{ color: "#526277" }}
         >
           {mode === "login"
             ? "Need an account? Register"
             : "Already have an account? Sign in"}
+        </button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-full mt-3 text-sm"
+          style={{ color: "#526277" }}
+        >
+          ← Back to landing page
         </button>
       </form>
     </main>
