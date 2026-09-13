@@ -85,8 +85,8 @@ export default function App() {
           <button
             type="button"
             onClick={() => openAuth("login")}
-            className="px-4 py-2 text-sm font-medium font-display uppercase tracking-wider"
-            style={{ color: "#526277" }}
+            className="px-6 py-3 font-display font-600 uppercase tracking-wider text-sm"
+            style={buttonStyle}
           >
             Sign in
           </button>
