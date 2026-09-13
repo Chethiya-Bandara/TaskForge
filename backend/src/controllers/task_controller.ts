@@ -77,6 +77,7 @@ export const createTask = async (req: AuthRequest, res: Response) => {
         priority: data.priority ?? "medium",
         projectId,
         createdById: req.user!.userId,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
       },
     });
 
@@ -135,6 +136,10 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
     if (data.priority !== undefined) {
       updateData.priority = data.priority;
+    }
+
+    if (data.dueDate !== undefined) {
+      updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
     }
 
     // assignedToId validation

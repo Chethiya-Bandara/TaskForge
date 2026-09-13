@@ -4,6 +4,7 @@ export const createTaskSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
+  dueDate: z.string().datetime().optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -19,5 +20,6 @@ export const updateTaskSchema = z.object({
     "medium",
     "high",
   ]).optional(),
+  dueDate: z.string().datetime().nullable().optional(),
   assignedToId: z.string().uuid().nullable().optional()
 });
