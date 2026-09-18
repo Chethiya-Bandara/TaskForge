@@ -32,9 +32,11 @@ const WORKFLOW_STEPS = [
 ]
 
 const buttonStyle = {
-  backgroundColor: "#2563eb",
+  backgroundColor: "#f0804c",
   color: "#ffffff",
   letterSpacing: "0.08em",
+  borderRadius: 999,
+  boxShadow: "0 10px 24px rgba(240, 128, 76, 0.22)",
 }
 
 export default function App() {
@@ -53,23 +55,21 @@ export default function App() {
     )
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "#f5f7fb", color: "#172033" }}
-    >
+    <div className="min-h-screen landing-page" style={{ color: "#172033" }}>
       <header
-        className="sticky top-0 z-50 flex items-center justify-between px-8 py-4"
+        className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 landing-header"
         style={{
           borderBottom: "1px solid #dbe3ef",
           backgroundColor: "rgba(255,255,255,0.92)",
           backdropFilter: "blur(12px)",
+          borderRadius: 22,
         }}
       >
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
             <div
               className="w-6 h-6 flex items-center justify-center font-display font-bold text-xs"
-              style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+              style={{ backgroundColor: "#f0804c", color: "#ffffff" }}
             >
               TF
             </div>
@@ -102,7 +102,7 @@ export default function App() {
             <div>
               <p
                 className="text-xs uppercase tracking-widest mb-8 font-display"
-                style={{ color: "#2563eb" }}
+                style={{ color: "#f0804c" }}
               >
                 Project management for teams
               </p>
@@ -118,7 +118,7 @@ export default function App() {
                 <br />
                 without
                 <br />
-                <span style={{ color: "#2563eb" }}>chaos.</span>
+                <span style={{ color: "#f0804c" }}>chaos.</span>
               </h1>
               <p
                 className="text-lg mb-10 max-w-md"
@@ -137,12 +137,12 @@ export default function App() {
               </button>
             </div>
             <div
-              className="p-6"
+              className="p-6 landing-feature-card"
               style={{
                 backgroundColor: "#ffffff",
                 border: "1px solid #dbe3ef",
-                borderRadius: 12,
-                boxShadow: "0 18px 48px rgba(37, 99, 235, 0.10)",
+                borderRadius: 24,
+                boxShadow: "0 18px 48px rgba(235, 139, 37, 0.1)",
               }}
             >
               <p
@@ -158,7 +158,7 @@ export default function App() {
                     className="flex items-center gap-4 py-4"
                     style={{ borderTop: index ? "1px solid #e7edf5" : "none" }}
                   >
-                    <span className="font-display" style={{ color: "#2563eb" }}>
+                    <span className="font-display" style={{ color: "#f0804c" }}>
                       0{index + 1}
                     </span>
                     <span className="font-display uppercase tracking-wider">
@@ -180,7 +180,7 @@ export default function App() {
             <div className="mb-16">
               <p
                 className="text-xs uppercase tracking-widest mb-4 font-display"
-                style={{ color: "#2563eb" }}
+                style={{ color: "#f0804c" }}
               >
                 Capabilities
               </p>
@@ -196,15 +196,12 @@ export default function App() {
                 Efficiency.
               </h2>
             </div>
-            <div
-              className="grid grid-cols-1 md:grid-cols-2 gap-px"
-              style={{ backgroundColor: "#dbe3ef" }}
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 landing-feature-grid">
               {FEATURES.map((feature) => (
                 <article
                   key={feature.number}
-                  className="p-8"
-                  style={{ backgroundColor: "#ffffff" }}
+                  className="p-8 landing-capability-card"
+                  style={{ backgroundColor: "rgba(255,255,255,0.86)" }}
                 >
                   <span
                     className="font-display text-xs"
@@ -232,7 +229,7 @@ export default function App() {
             <div>
               <p
                 className="text-xs uppercase tracking-widest mb-4 font-display"
-                style={{ color: "#2563eb" }}
+                style={{ color: "#f0804c" }}
               >
                 Workflow
               </p>
@@ -258,7 +255,7 @@ export default function App() {
               style={{
                 border: "1px solid #dbe3ef",
                 backgroundColor: "#ffffff",
-                borderRadius: 12,
+                borderRadius: 24,
                 overflow: "hidden",
                 boxShadow: "0 12px 32px rgba(15, 23, 42, 0.06)",
               }}
@@ -300,14 +297,14 @@ export default function App() {
       </main>
 
       <footer
-        className="px-8 py-10"
+        className="px-8 py-10 landing-footer"
         style={{ borderTop: "1px solid #dbe3ef", backgroundColor: "#ffffff" }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <div
               className="w-5 h-5 flex items-center justify-center font-display font-bold text-xs"
-              style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
+              style={{ backgroundColor: "#f0804c", color: "#ffffff" }}
             >
               TF
             </div>

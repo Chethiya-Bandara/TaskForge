@@ -3,24 +3,111 @@ import AuthScreen from "./AuthScreen"
 import { api } from "./api"
 
 const COLUMNS = [
-  { key: "todo", label: "To do", color: "#64748b" },
-  { key: "in_progress", label: "In progress", color: "#2563eb" },
-  { key: "completed", label: "Done", color: "#16a34a" },
+  {
+    key: "todo",
+    label: "To do",
+    shortLabel: "Todo",
+    color: "#f4a261",
+    tint: "#fff8ef",
+  },
+  {
+    key: "in_progress",
+    label: "In progress",
+    shortLabel: "In progress",
+    color: "#3478f6",
+    tint: "#f2f7ff",
+  },
+  {
+    key: "completed",
+    label: "Completed",
+    shortLabel: "Done",
+    color: "#18a999",
+    tint: "#effbf8",
+  },
 ]
-const inputStyle = {
-  background: "#ffffff",
-  border: "1px solid #cbd5e1",
-  borderRadius: 6,
-  color: "#172033",
+
+function Icon({ name, size = 20 }) {
+  const paths = {
+    grid: (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="2" />
+        <rect x="14" y="3" width="7" height="7" rx="2" />
+        <rect x="3" y="14" width="7" height="7" rx="2" />
+        <rect x="14" y="14" width="7" height="7" rx="2" />
+      </>
+    ),
+    folder: (
+      <>
+        <path d="M3 7.5h6l2-2h10v13H3z" />
+        <path d="M3 9h18" />
+      </>
+    ),
+    check: (
+      <>
+        <path d="M9 11l2 2 4-5" />
+        <rect x="4" y="4" width="16" height="16" rx="5" />
+      </>
+    ),
+    chart: (
+      <>
+        <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />
+      </>
+    ),
+    search: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </>
+    ),
+    plus: <path d="M12 5v14M5 12h14" />,
+    logout: (
+      <>
+        <path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" />
+      </>
+    ),
+    calendar: (
+      <>
+        <rect x="3" y="5" width="18" height="16" rx="3" />
+        <path d="M8 3v4M16 3v4M3 10h18" />
+      </>
+    ),
+    arrow: (
+      <>
+        <path d="M5 12h14M14 7l5 5-5 5" />
+      </>
+    ),
+    trash: (
+      <>
+        <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+      </>
+    ),
+    spark: (
+      <>
+        <path d="m12 3 1.4 4.1L17 9l-3.6 1.9L12 15l-1.4-4.1L7 9l3.6-1.9z" />
+        <path d="m19 15 .7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z" />
+      </>
+    ),
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name]}
+    </svg>
+  )
 }
 
 function getLocalDateString() {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, "0")
-  const day = String(today.getDate()).padStart(2, "0")
-
-  return `${year}-${month}-${day}`
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
 }
 
 function isOverdue(task) {
@@ -31,69 +118,81 @@ function isOverdue(task) {
   )
 }
 
+function formatDate(date) {
+  if (!date) return "No due date"
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${date.slice(0, 10)}T00:00:00`))
+}
+
 function DueDateEditor({ task, overdue, onSave }) {
   const savedDueDate = task.dueDate ? task.dueDate.slice(0, 10) : ""
   const [draftDueDate, setDraftDueDate] = useState(savedDueDate)
   const [isSaving, setIsSaving] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const hasChanges = draftDueDate !== savedDueDate
 
-  useEffect(() => {
-    setDraftDueDate(savedDueDate)
-  }, [savedDueDate, task.id])
+  useEffect(() => setDraftDueDate(savedDueDate), [savedDueDate, task.id])
 
   async function saveDueDate() {
     if (!hasChanges) return
-
     setIsSaving(true)
-    await onSave(task.id, draftDueDate)
+    const saved = await onSave(task.id, draftDueDate)
     setIsSaving(false)
+    if (saved) setIsOpen(false)
   }
 
   async function removeDueDate() {
     setIsSaving(true)
-    await onSave(task.id, "")
+    const saved = await onSave(task.id, "")
     setIsSaving(false)
+    if (saved) setIsOpen(false)
   }
 
   return (
-    <div className="mb-3">
-      <label
-        className="block text-xs"
-        style={{ color: overdue ? "#dc2626" : "#526277" }}
+    <div className="date-editor">
+      <button
+        type="button"
+        className={`date-trigger ${overdue ? "overdue" : ""}`}
+        onClick={() => setIsOpen((value) => !value)}
       >
-        Due date
-        <input
-          aria-label={`Due date for ${task.title}`}
-          type="date"
-          value={draftDueDate}
-          onChange={(event) => setDraftDueDate(event.target.value)}
-          disabled={isSaving}
-          className="block w-full mt-1 p-1 text-xs disabled:opacity-50"
-          style={inputStyle}
-        />
-      </label>
-      <div className="flex gap-3 mt-2">
-        <button
-          type="button"
-          onClick={saveDueDate}
-          disabled={!hasChanges || isSaving}
-          className="text-xs disabled:opacity-50"
-          style={{ color: "#2563eb" }}
-        >
-          {isSaving ? "Saving…" : "Save due date"}
-        </button>
-        {savedDueDate && (
-          <button
-            type="button"
-            onClick={removeDueDate}
-            disabled={isSaving}
-            className="text-xs disabled:opacity-50"
-            style={{ color: "#526277" }}
-          >
-            Remove due date
-          </button>
-        )}
-      </div>
+        <Icon name="calendar" size={14} />
+        {formatDate(savedDueDate)}
+      </button>
+      {isOpen && (
+        <div className="date-popover">
+          <label>
+            Due date
+            <input
+              aria-label={`Due date for ${task.title}`}
+              type="date"
+              value={draftDueDate}
+              onChange={(event) => setDraftDueDate(event.target.value)}
+              disabled={isSaving}
+            />
+          </label>
+          <div className="date-actions">
+            <button
+              type="button"
+              onClick={saveDueDate}
+              disabled={!hasChanges || isSaving}
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </button>
+            {savedDueDate && (
+              <button
+                type="button"
+                className="muted-button"
+                onClick={removeDueDate}
+                disabled={isSaving}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -102,28 +201,53 @@ export default function Dashboard({ authMode, onBack }) {
   const [token, setToken] = useState(() =>
     localStorage.getItem("taskforge-token"),
   )
-  const [user, setUser] = useState(null),
-    [projects, setProjects] = useState([]),
-    [activeProjectId, setActiveProjectId] = useState(""),
-    [tasks, setTasks] = useState([])
-  const [newProject, setNewProject] = useState(""),
-    [newTask, setNewTask] = useState(""),
-    [newTaskDueDate, setNewTaskDueDate] = useState(""),
-    [error, setError] = useState(""),
-    [loading, setLoading] = useState(false)
+  const [user, setUser] = useState(null)
+  const [projects, setProjects] = useState([])
+  const [activeProjectId, setActiveProjectId] = useState("")
+  const [tasks, setTasks] = useState([])
+  const [newProject, setNewProject] = useState("")
+  const [newTask, setNewTask] = useState("")
+  const [newTaskDueDate, setNewTaskDueDate] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState("")
+  const [period, setPeriod] = useState("This month")
+  const [showProjectForm, setShowProjectForm] = useState(false)
+
   const activeProject = projects.find(
     (project) => project.id === activeProjectId,
+  )
+  const filteredTasks = useMemo(
+    () =>
+      tasks.filter((task) =>
+        task.title.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [tasks, search],
   )
   const grouped = useMemo(
     () =>
       Object.fromEntries(
         COLUMNS.map((column) => [
           column.key,
-          tasks.filter((task) => task.status === column.key),
+          filteredTasks.filter((task) => task.status === column.key),
+        ]),
+      ),
+    [filteredTasks],
+  )
+  const stats = useMemo(
+    () =>
+      Object.fromEntries(
+        COLUMNS.map((column) => [
+          column.key,
+          tasks.filter((task) => task.status === column.key).length,
         ]),
       ),
     [tasks],
   )
+  const totalTasks = tasks.length
+  const completion = totalTasks
+    ? Math.round((stats.completed / totalTasks) * 100)
+    : 0
 
   function logout() {
     localStorage.removeItem("taskforge-token")
@@ -169,6 +293,7 @@ export default function Dashboard({ authMode, onBack }) {
   useEffect(() => {
     loadTasks()
   }, [activeProjectId])
+
   async function createProject(event) {
     event.preventDefault()
     try {
@@ -178,6 +303,7 @@ export default function Dashboard({ authMode, onBack }) {
         body: { name: newProject },
       })
       setNewProject("")
+      setShowProjectForm(false)
       await loadProjects()
       setActiveProjectId(project.id)
     } catch (requestError) {
@@ -243,7 +369,8 @@ export default function Dashboard({ authMode, onBack }) {
       setError(requestError.message)
     }
   }
-  if (!token) {
+
+  if (!token)
     return (
       <AuthScreen
         initialMode={authMode}
@@ -251,241 +378,286 @@ export default function Dashboard({ authMode, onBack }) {
         onBack={onBack}
       />
     )
-  }
-  return (
-    <main
-      className="min-h-screen p-6 md:p-8"
-      style={{ background: "#f5f7fb", color: "#172033" }}
-    >
-      <header
-        className="max-w-7xl mx-auto flex flex-wrap gap-4 items-center justify-between pb-6"
-        style={{ borderBottom: "1px solid #dbe3ef" }}
-      >
-        <div className="flex items-center gap-3">
-          <span
-            className="w-8 h-8 grid place-items-center font-display font-bold"
-            style={{ background: "#2563eb", color: "#ffffff", borderRadius: 8 }}
-          >
-            TF
-          </span>
-          <div>
-            <h1 className="font-display text-xl uppercase tracking-wider">
-              TaskForge
-            </h1>
-          </div>
-        </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={logout}
-            className="px-3 py-2 text-sm"
-            style={inputStyle}
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
-      <div className="max-w-7xl mx-auto grid lg:grid-cols-[260px_1fr] gap-6 pt-6">
-        <p className="text-xl" style={{ color: "#172033" }}>
-          Welcome back, {user?.name || "User!"}!
-        </p>
-      </div>
-      <div className="max-w-7xl mx-auto grid lg:grid-cols-[260px_1fr] gap-6 pt-6">
-        <aside
-          className="p-4"
-          style={{
-            background: "#ffffff",
-            border: "1px solid #dbe3ef",
-            borderRadius: 12,
-          }}
-        >
-          <p
-            className="font-display uppercase tracking-widest text-xs mb-3"
-            style={{ color: "#64748b" }}
-          >
-            Projects
-          </p>
-          <div className="space-y-1 mb-5">
-            {projects.map((project) => (
-              <button
-                key={project.id}
-                onClick={() => setActiveProjectId(project.id)}
-                className="w-full text-left p-2 text-sm"
-                style={{
-                  background:
-                    project.id === activeProjectId ? "#eff6ff" : "transparent",
-                  color: project.id === activeProjectId ? "#2563eb" : "#526277",
-                }}
-              >
-                {project.name}
-              </button>
-            ))}
+  return (
+    <main>
+      <div className="dashboard-shell">
+        <aside className="nav-rail" aria-label="Primary navigation">
+          <div className="brand-mark">
+            T<span>F</span>
           </div>
-          <form onSubmit={createProject} className="space-y-2">
-            <input
-              required
-              minLength="3"
-              value={newProject}
-              onChange={(e) => setNewProject(e.target.value)}
-              placeholder="New project"
-              className="w-full p-2 text-sm"
-              style={inputStyle}
-            />
-            <button
-              className="w-full p-2 text-xs font-display uppercase"
-              style={{
-                background: "#2563eb",
-                color: "#ffffff",
-                borderRadius: 6,
-              }}
-            >
-              Create project
+          <nav>
+            <button className="nav-icon active" aria-label="Dashboard">
+              <Icon name="grid" />
             </button>
-          </form>
+            <button className="nav-icon" aria-label="Projects">
+              <Icon name="folder" />
+            </button>
+            <button className="nav-icon" aria-label="Tasks">
+              <Icon name="check" />
+            </button>
+            <button className="nav-icon" aria-label="Reports">
+              <Icon name="chart" />
+            </button>
+          </nav>
+          <button
+            className="nav-icon signout"
+            aria-label="Sign out"
+            onClick={logout}
+          >
+            <Icon name="logout" />
+          </button>
         </aside>
-        <section>
-          {error && (
-            <p
-              className="mb-4 p-3 text-sm"
-              style={{
-                color: "#dc2626",
-                border: "1px solid #fecaca",
-                background: "#fef2f2",
-                borderRadius: 8,
-              }}
-            >
-              {error}
-            </p>
-          )}
-          {!activeProject ? (
-            <div
-              className="p-10 text-center"
-              style={{
-                border: "1px solid #dbe3ef",
-                color: "#526277",
-                background: "#ffffff",
-                borderRadius: 12,
-              }}
-            >
-              {loading
-                ? "Loading projects…"
-                : "Create a project to start tracking work."}
+        <div className="workspace">
+          <header className="dashboard-header">
+            <div>
+              <p className="eyebrow">Manage and track your projects</p>
+              <h1>Project Dashboard</h1>
             </div>
-          ) : (
-            <>
-              <div className="flex flex-wrap justify-between gap-4 mb-5">
-                <div>
-                  <p
-                    className="text-xl uppercase tracking-widest"
-                    style={{ color: "#2563eb" }}
+            <div className="header-controls">
+              {/* <div className="period-tabs" aria-label="Dashboard period">
+                {["Today", "This week", "This month"].map((item) => (
+                  <button
+                    key={item}
+                    className={period === item ? "active" : ""}
+                    onClick={() => setPeriod(item)}
                   >
-                    Projects / {activeProject.name}
-                  </p>
-                  <h2 className="font-display text-4xl uppercase">Board</h2>
+                    {item}
+                  </button>
+                ))}
+              </div> */}
+              <label className="search-box">
+                <Icon name="search" size={19} />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Filter tasks"
+                />
+              </label>
+              <div className="user-chip" title={user?.name || "User"}>
+                {(user?.name || "U").slice(0, 1).toUpperCase()}
+              </div>
+            </div>
+          </header>
+          {error && (
+            <div className="error-banner">
+              <span>{error}</span>
+              <button onClick={() => setError("")}>Dismiss</button>
+            </div>
+          )}
+          <section className="overview-grid">
+            <article className="panel projects-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="panel-kicker">Workspace</p>
+                  <h2>My projects</h2>
                 </div>
-                <form
-                  onSubmit={createTask}
-                  className="flex flex-wrap gap-2 self-end"
+                <button
+                  className="circle-button"
+                  onClick={() => setShowProjectForm((value) => !value)}
+                  aria-label="Create project"
                 >
+                  <Icon name="plus" />
+                </button>
+              </div>
+              {showProjectForm && (
+                <form onSubmit={createProject} className="project-form">
+                  <input
+                    required
+                    minLength="3"
+                    value={newProject}
+                    onChange={(event) => setNewProject(event.target.value)}
+                    placeholder="Project name"
+                    autoFocus
+                  />
+                  <button>Create</button>
+                </form>
+              )}
+              <div className="project-list">
+                {projects.map((project, index) => (
+                  <button
+                    key={project.id}
+                    onClick={() => setActiveProjectId(project.id)}
+                    className={project.id === activeProjectId ? "active" : ""}
+                  >
+                    <span className="project-glyph">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span>{project.name}</span>
+                    <Icon name="arrow" size={16} />
+                  </button>
+                ))}
+                {!projects.length && !loading && (
+                  <p className="empty-copy">
+                    Create a project to start tracking work.
+                  </p>
+                )}
+                {loading && <p className="empty-copy">Loading projects…</p>}
+              </div>
+            </article>
+            <article className="panel progress-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="panel-kicker">{period}</p>
+                  <h2>Projects overview</h2>
+                </div>
+                <span className="completion-number">{completion}%</span>
+              </div>
+              <div className="progress-content">
+                <div
+                  className="donut"
+                  style={{
+                    "--todo": `${
+                      totalTasks ? (stats.todo / totalTasks) * 360 : 0
+                    }deg`,
+                    "--progress": `${
+                      totalTasks
+                        ? ((stats.todo + stats.in_progress) / totalTasks) * 360
+                        : 0
+                    }deg`,
+                  }}
+                >
+                  <div>
+                    <strong>{totalTasks}</strong>
+                    <span>Total tasks</span>
+                  </div>
+                </div>
+                <div className="stat-list">
+                  {COLUMNS.map((column) => (
+                    <div key={column.key}>
+                      <span
+                        className="stat-dot"
+                        style={{ background: column.color }}
+                      />
+                      <span>{column.label}</span>
+                      <strong>{stats[column.key]}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
+            <article className="panel focus-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="panel-kicker">Snapshot</p>
+                  <h2>Team focus</h2>
+                </div>
+                <div className="spark-icon">
+                  <Icon name="spark" />
+                </div>
+              </div>
+              <div className="focus-stat">
+                <strong>{stats.in_progress}</strong>
+                <span>tasks currently moving</span>
+              </div>
+              <p className="focus-note">
+                {stats.completed
+                  ? `${stats.completed} task${
+                      stats.completed === 1 ? "" : "s"
+                    } completed. Keep the momentum going.`
+                  : "Your progress story starts with the first completed task."}
+              </p>
+            </article>
+          </section>
+          <section className="board-section">
+            <div className="board-heading">
+              <div>
+                <p className="panel-kicker">
+                  {activeProject
+                    ? `Projects / ${activeProject.name}`
+                    : "Your workspace"}
+                </p>
+                <h2>{activeProject ? "Task board" : "No project selected"}</h2>
+              </div>
+              {activeProject && (
+                <form onSubmit={createTask} className="task-form">
                   <input
                     required
                     minLength="3"
                     value={newTask}
-                    onChange={(e) => setNewTask(e.target.value)}
-                    placeholder="Task title"
-                    className="p-2 text-sm"
-                    style={inputStyle}
+                    onChange={(event) => setNewTask(event.target.value)}
+                    placeholder="What needs to be done?"
                   />
                   <input
-                    aria-label="Due date"
+                    aria-label="New task due date"
                     type="date"
                     value={newTaskDueDate}
-                    onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="p-2 text-sm"
-                    style={inputStyle}
+                    onChange={(event) => setNewTaskDueDate(event.target.value)}
                   />
-                  <button
-                    className="px-3 py-2 text-sm font-display uppercase"
-                    style={{
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      borderRadius: 6,
-                    }}
-                  >
-                    + Task
+                  <button>
+                    <Icon name="plus" size={17} />
+                    Add task
                   </button>
                 </form>
+              )}
+            </div>
+            {!activeProject ? (
+              <div className="blank-state">
+                <Icon name="folder" size={30} />
+                <p>
+                  {loading
+                    ? "Loading your workspace…"
+                    : "Create a project to start tracking work."}
+                </p>
               </div>
-              <div className="grid md:grid-cols-3 gap-4">
+            ) : (
+              <div className="kanban-grid">
                 {COLUMNS.map((column) => (
-                  <div
-                    key={column.key}
-                    className="p-3 min-h-80"
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #dbe3ef",
-                      borderRadius: 10,
-                    }}
-                  >
-                    <div className="flex justify-between items-center mb-3">
-                      <h3
-                        className="font-display uppercase tracking-wider"
-                        style={{ color: column.color }}
-                      >
-                        {column.label}
-                      </h3>
-                      <span className="text-xs" style={{ color: "#64748b" }}>
-                        {grouped[column.key].length}
-                      </span>
+                  <div className="kanban-column" key={column.key}>
+                    <div className="column-heading">
+                      <div>
+                        <span style={{ background: column.color }} />
+                        <h3>{column.label}</h3>
+                      </div>
+                      <b>{grouped[column.key].length}</b>
                     </div>
-                    <div className="space-y-2">
+                    <div className="task-list">
                       {grouped[column.key].map((task) => {
                         const overdue = isOverdue(task)
-
                         return (
                           <article
+                            className={`task-card ${
+                              overdue ? "is-overdue" : ""
+                            }`}
                             key={task.id}
-                            className="p-3"
                             style={{
-                              background: overdue ? "#fef2f2" : "#ffffff",
-                              border: overdue
-                                ? "1px solid #fca5a5"
-                                : "1px solid #dbe3ef",
-                              borderRadius: 8,
+                              "--card-tint": overdue ? "#fff4f2" : column.tint,
                             }}
                           >
-                            <div className="flex items-center justify-between gap-2 mb-3">
-                              <p className="text-sm">{task.title}</p>
-                              {overdue && (
-                                <span
-                                  className="px-2 py-1 text-xs font-display uppercase"
-                                  style={{
-                                    color: "#dc2626",
-                                    border: "1px solid #fca5a5",
-                                    background: "#fff1f2",
-                                  }}
-                                >
-                                  Overdue
-                                </span>
-                              )}
-                            </div>
-                            <DueDateEditor
-                              task={task}
-                              overdue={overdue}
-                              onSave={updateTaskDueDate}
-                            />
-                            <div className="flex gap-2 items-center">
-                              <select
-                                value={task.status}
-                                onChange={(e) =>
-                                  updateTask(task.id, e.target.value)
-                                }
-                                className="flex-1 p-1 text-xs"
+                            <div className="task-top">
+                              <span
+                                className="status-pill"
                                 style={{
-                                  background: "#ffffff",
-                                  border: "1px solid #cbd5e1",
-                                  color: "#526277",
+                                  color: column.color,
+                                  background: `${column.color}18`,
                                 }}
+                              >
+                                {column.shortLabel}
+                              </span>
+                              <button
+                                className="delete-button"
+                                onClick={() => deleteTask(task.id)}
+                                aria-label={`Delete ${task.title}`}
+                              >
+                                <Icon name="trash" size={16} />
+                              </button>
+                            </div>
+                            <h4>{task.title}</h4>
+                            {overdue && (
+                              <span className="overdue-label">Overdue</span>
+                            )}
+                            <div className="task-footer">
+                              <DueDateEditor
+                                task={task}
+                                overdue={overdue}
+                                onSave={updateTaskDueDate}
+                              />
+                              <select
+                                aria-label={`Status for ${task.title}`}
+                                value={task.status}
+                                onChange={(event) =>
+                                  updateTask(task.id, event.target.value)
+                                }
                               >
                                 {COLUMNS.map((option) => (
                                   <option key={option.key} value={option.key}>
@@ -493,24 +665,22 @@ export default function Dashboard({ authMode, onBack }) {
                                   </option>
                                 ))}
                               </select>
-                              <button
-                                onClick={() => deleteTask(task.id)}
-                                className="text-xs"
-                                style={{ color: "#dc2626" }}
-                              >
-                                Delete
-                              </button>
                             </div>
                           </article>
                         )
                       })}
+                      {!grouped[column.key].length && (
+                        <div className="column-empty">
+                          No {search ? "matching " : ""}tasks
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            </>
-          )}
-        </section>
+            )}
+          </section>
+        </div>
       </div>
     </main>
   )

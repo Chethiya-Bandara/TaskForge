@@ -4,7 +4,7 @@ import { api } from "./api"
 const inputStyle = {
   background: "#ffffff",
   border: "1px solid #cbd5e1",
-  borderRadius: 8,
+  borderRadius: 14,
   color: "#172033",
 }
 
@@ -49,23 +49,27 @@ export default function AuthScreen({ initialMode, onAuthenticated, onBack }) {
 
   return (
     <main
-      className="min-h-screen grid place-items-center p-6"
-      style={{ background: "#f5f7fb", color: "#172033" }}
+      className="min-h-screen grid place-items-center p-6 auth-page"
+      style={{ color: "#172033" }}
     >
       <form
         onSubmit={submit}
-        className="w-full max-w-md p-8"
+        className="w-full max-w-md p-8 auth-card"
         style={{
           background: "#ffffff",
           border: "1px solid #dbe3ef",
-          borderRadius: 16,
-          boxShadow: "0 20px 60px rgba(15, 23, 42, 0.10)",
+          borderRadius: 28,
+          boxShadow: "0 30px 80px rgba(40, 61, 63, 0.18)",
         }}
       >
         <div className="flex items-center gap-2 mb-8">
           <span
             className="w-8 h-8 grid place-items-center font-display font-bold"
-            style={{ background: "#2563eb", color: "#ffffff", borderRadius: 8 }}
+            style={{
+              background: "#f0804c",
+              color: "#ffffff",
+              borderRadius: 12,
+            }}
           >
             TF
           </span>
@@ -120,7 +124,12 @@ export default function AuthScreen({ initialMode, onAuthenticated, onBack }) {
         <button
           disabled={busy}
           className="w-full p-3 font-display uppercase tracking-wider disabled:opacity-50"
-          style={{ background: "#2563eb", color: "#ffffff", borderRadius: 8 }}
+          style={{
+            background: "#f0804c",
+            color: "#ffffff",
+            borderRadius: 999,
+            boxShadow: "0 10px 24px rgba(240, 128, 76, 0.22)",
+          }}
         >
           {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
         </button>
