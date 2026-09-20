@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import AuthScreen from "./AuthScreen"
 import { api } from "./api"
 
@@ -213,6 +213,12 @@ export default function Dashboard({ authMode, onBack }) {
   const [search, setSearch] = useState("")
   const [period, setPeriod] = useState("This month")
   const [showProjectForm, setShowProjectForm] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileName, setProfileName] = useState("")
+  const [profileEmail, setProfileEmail] = useState("")
+  const [savingProfile, setSavingProfile] = useState(false)
+  const profileRef = useRef(null)
 
   const activeProject = projects.find(
     (project) => project.id === activeProjectId,
@@ -293,6 +299,46 @@ export default function Dashboard({ authMode, onBack }) {
   useEffect(() => {
     loadTasks()
   }, [activeProjectId])
+  useEffect(() => {
+    if (!showProfile) return
+    function closeProfile(event) {
+      if (!profileRef.current?.contains(event.target)) setShowProfile(false)
+    }
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setShowProfile(false)
+    }
+    document.addEventListener("pointerdown", closeProfile)
+    document.addEventListener("keydown", closeOnEscape)
+    return () => {
+      document.removeEventListener("pointerdown", closeProfile)
+      document.removeEventListener("keydown", closeOnEscape)
+    }
+  }, [showProfile])
+
+  function startEditingProfile() {
+    setProfileName(user?.name || "")
+    setProfileEmail(user?.email || "")
+    setEditingProfile(true)
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault()
+    setSavingProfile(true)
+    setError("")
+    try {
+      const changed = await api("/auth/me", {
+        token,
+        method: "PATCH",
+        body: { name: profileName, email: profileEmail },
+      })
+      setUser(changed)
+      setEditingProfile(false)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   async function createProject(event) {
     event.preventDefault()
@@ -434,8 +480,77 @@ export default function Dashboard({ authMode, onBack }) {
                   placeholder="Filter tasks"
                 />
               </label>
-              <div className="user-chip" title={user?.name || "User"}>
-                {(user?.name || "U").slice(0, 1).toUpperCase()}
+              <div className="profile-menu" ref={profileRef}>
+                <button
+                  type="button"
+                  className="user-chip"
+                  title={user?.name || "User"}
+                  aria-label="Open profile menu"
+                  aria-expanded={showProfile}
+                  onClick={() => {
+                    setShowProfile((value) => !value)
+                    setEditingProfile(false)
+                  }}
+                >
+                  {(user?.name || "U").slice(0, 1).toUpperCase()}
+                </button>
+                {showProfile && (
+                  <div className="profile-popover" role="dialog" aria-label="Profile details">
+                    <div className="profile-popover-heading">
+                      <span className="profile-avatar">
+                        {(user?.name || "U").slice(0, 1).toUpperCase()}
+                      </span>
+                      <div>
+                        <strong>{user?.name || "User"}</strong>
+                        <span>Your account</span>
+                      </div>
+                    </div>
+                    {editingProfile ? (
+                      <form className="profile-form" onSubmit={saveProfile}>
+                        <label>
+                          Name
+                          <input
+                            required
+                            minLength="2"
+                            value={profileName}
+                            onChange={(event) => setProfileName(event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          Email
+                          <input
+                            required
+                            type="email"
+                            value={profileEmail}
+                            onChange={(event) => setProfileEmail(event.target.value)}
+                          />
+                        </label>
+                        <div className="profile-form-actions">
+                          <button type="button" onClick={() => setEditingProfile(false)}>
+                            Cancel
+                          </button>
+                          <button type="submit" disabled={savingProfile}>
+                            {savingProfile ? "Saving…" : "Save"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <dl className="profile-details">
+                          <div><dt>Name</dt><dd>{user?.name || "—"}</dd></div>
+                          <div><dt>Email</dt><dd>{user?.email || "—"}</dd></div>
+                        </dl>
+                        <div className="profile-actions">
+                          <button type="button" onClick={startEditingProfile}>Edit details</button>
+                          <button type="button" className="profile-logout" onClick={logout}>
+                            <Icon name="logout" size={16} />
+                            Log out
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </header>
