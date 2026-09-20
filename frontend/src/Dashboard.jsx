@@ -652,19 +652,29 @@ export default function Dashboard({ authMode, onBack }) {
                                 overdue={overdue}
                                 onSave={updateTaskDueDate}
                               />
-                              <select
-                                aria-label={`Status for ${task.title}`}
-                                value={task.status}
-                                onChange={(event) =>
-                                  updateTask(task.id, event.target.value)
-                                }
+                              <div
+                                className="status-select"
+                                style={{
+                                  "--status-color": column.color,
+                                  "--status-tint": `${column.color}14`,
+                                }}
                               >
-                                {COLUMNS.map((option) => (
-                                  <option key={option.key} value={option.key}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
+                                <span className="status-select-dot" />
+                                <select
+                                  aria-label={`Status for ${task.title}`}
+                                  value={task.status}
+                                  onChange={(event) =>
+                                    updateTask(task.id, event.target.value)
+                                  }
+                                >
+                                  {COLUMNS.map((option) => (
+                                    <option key={option.key} value={option.key}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="status-select-chevron" />
+                              </div>
                             </div>
                           </article>
                         )
