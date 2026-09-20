@@ -2,7 +2,8 @@ import type { Request, Response } from "express";
 import prisma from "../prisma/client.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { registerSchema, loginSchema } from "../validators/auth_validator.js";
+import { registerSchema, loginSchema, updateProfileSchema } from "../validators/auth_validator.js";
+import type { AuthRequest } from "../middleware/auth_middleware.js";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -91,5 +92,37 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({
       message: "Login failed",
     });
+  }
+};
+
+export const getProfile = async (req: AuthRequest, res: Response) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    select: { id: true, name: true, email: true },
+  });
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+    const existingUser = await prisma.user.findFirst({
+      where: { email: data.email, NOT: { id: req.user.userId } },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data,
+      select: { id: true, name: true, email: true },
+    });
+    res.json(user);
+  } catch {
+    res.status(400).json({ message: "Unable to update profile" });
   }
 };
