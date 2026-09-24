@@ -78,7 +78,13 @@ export const addMember = async(
                 role: safeRole,
             },
             include: {
-                user: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
             },
         });
 
@@ -114,7 +120,13 @@ export const getMembers = async(
         const members = await prisma.projectMember.findMany({
             where: { projectId },
             include: {
-                user: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
             },
         });
         res.json(members);

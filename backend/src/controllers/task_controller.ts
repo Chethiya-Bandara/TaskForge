@@ -26,8 +26,20 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
     const tasks = await prisma.task.findMany({
       where: { projectId },
       include: {
-        createdBy: true,
-        assignedTo: true,
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          },
+        },
       },
     });
 
