@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import prisma from "../prisma/client.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { registerSchema, loginSchema, updateProfileSchema } from "../validators/auth_validator.js";
 import type { AuthRequest } from "../middleware/auth_middleware.js";
+import { createAccessToken, createSession, refreshCookieOptions, revokeAllUserSessions, revokeSession, rotateSession } from "../services/session_service.js";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -73,21 +73,10 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: "1d",
-      }
-    );
+    const { session, refreshToken } = await createSession(user.id);
+    const token = createAccessToken(user, session.id);
 
-    res.json({
-      token,
-    });
+    res.cookie("refresh_token", refreshToken, refreshCookieOptions).json({ token });
   } catch (error) {
     res.status(500).json({
       message: "Login failed",
@@ -95,9 +84,39 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+const getCookie = (cookieHeader: string | undefined, name: string) =>
+  cookieHeader?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1);
+
+export const refresh = async (req: Request, res: Response) => {
+  const rawToken = getCookie(req.headers.cookie, "refresh_token");
+  if (!rawToken) return res.status(401).json({ message: "No refresh token provided" });
+
+  try {
+    const replacement = await rotateSession(rawToken);
+    if (!replacement) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const token = createAccessToken(replacement.user, replacement.session.id);
+    res.cookie("refresh_token", replacement.refreshToken, refreshCookieOptions).json({ token });
+  } catch {
+    res.status(401).json({ message: "Unable to refresh session" });
+  }
+};
+
+export const logout = async (req: AuthRequest, res: Response) => {
+  await revokeSession(req.user!.sid);
+  res.clearCookie("refresh_token", refreshCookieOptions).sendStatus(204);
+};
+
+export const logoutAll = async (req: AuthRequest, res: Response) => {
+  await revokeAllUserSessions(req.user!.userId);
+  res.clearCookie("refresh_token", refreshCookieOptions).sendStatus(204);
+};
+
 export const getProfile = async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.findUnique({
-    where: { id: req.user.userId },
+    where: { id: req.user!.userId },
     select: { id: true, name: true, email: true },
   });
 
@@ -109,7 +128,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const data = updateProfileSchema.parse(req.body);
     const existingUser = await prisma.user.findFirst({
-      where: { email: data.email, NOT: { id: req.user.userId } },
+    where: { email: data.email, NOT: { id: req.user!.userId } },
     });
 
     if (existingUser) {
@@ -117,10 +136,15 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     }
 
     const user = await prisma.user.update({
-      where: { id: req.user.userId },
+      where: { id: req.user!.userId },
       data,
       select: { id: true, name: true, email: true },
     });
+    // An email change is security-sensitive; require a fresh login on every device.
+    if (data.email !== req.user!.email) {
+      await revokeAllUserSessions(req.user!.userId);
+      res.clearCookie("refresh_token", refreshCookieOptions);
+    }
     res.json(user);
   } catch {
     res.status(400).json({ message: "Unable to update profile" });

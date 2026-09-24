@@ -27,6 +27,7 @@ model User {
   comments     Comment[]
 
   activityLogs ActivityLog[]
+  sessions     Session[]
 }
 
 
@@ -53,6 +54,22 @@ model ProjectMember {
 
   user      User    @relation(fields: [userId], references: [id])
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+}
+
+// Refresh-token sessions. The raw refresh token is never stored in the database.
+model Session {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  lastUsedAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 

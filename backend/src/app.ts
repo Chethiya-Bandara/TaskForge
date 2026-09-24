@@ -12,7 +12,12 @@ app.use(express.json());
 // Keep this deliberately small rather than relying on deployment-specific CORS
 // configuration, while still allowing the browser client to call this API.
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_ORIGIN || "*");
+  const allowedOrigin = (process.env.FRONTEND_ORIGIN || "http://localhost:8443").replace(/\/$/, "");
+  if (req.headers.origin === allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+  }
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
   if (req.method === "OPTIONS") return res.sendStatus(204);
