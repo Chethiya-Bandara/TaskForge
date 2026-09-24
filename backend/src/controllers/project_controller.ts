@@ -1,7 +1,8 @@
 import { Response } from "express";
 import prisma from "../prisma/client.js";
 import { AuthRequest } from "../types/auth";
-import { createProjectSchema } from "../validators/project_validator";
+import { createProjectSchema, updatedProjectSchema } from "../validators/project_validator";
+import { ZodError } from "zod";
 
 // Create project
 export const createProject = async (
@@ -32,7 +33,16 @@ export const createProject = async (
 
     res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({
+    if (error instanceof ZodError) {
+      return res.status(400).json({
+        message: "Invalid project data",
+        errors: error.flatten().fieldErrors,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
       message: "Failed to create project",
     });
   }
@@ -116,7 +126,7 @@ export const updateProject = async (
 ) => {
   try {
     const projectId = req.params.id as string;
-    
+
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
@@ -133,24 +143,37 @@ export const updateProject = async (
       return res.status(404).json({
         message: "Project not found",
       });
-    };
+    }
+
+    const data = updatedProjectSchema.parse(req.body);
 
     const updatedProject = await prisma.project.update({
       where: {
         id: projectId,
       },
       data: {
-        name: req.body.name, 
-        description: req.body.description
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
       },
     });
 
     res.json(updatedProject);
   } catch (error) {
-    res.status(500).json({
+    if (error instanceof ZodError) {
+      return res.status(400).json({
+        message: "Invalid project data",
+        errors: error.flatten().fieldErrors,
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
       message: "Failed to update project",
     });
-  };
+  }
 };
 
 
